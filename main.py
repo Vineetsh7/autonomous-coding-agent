@@ -1,21 +1,26 @@
-from typing import Any
-from client.llm_client import LLMClient
 import asyncio
 import click
+
+from agent.agent import Agent
+from agent.events import AgentEventType
 
 
 class CLI:
     def __init__(self):
-        pass
+        self.agent: Agent | None = None
 
-    def run_single(single):
-        pass
+    async def run_single(self, message: str):
+        async with Agent() as agent:
+            self.agent = agent
+            self._process_message(message)
 
+    async def _process_message(self, message: str) -> str | None:
+        if not self.agent:
+            return None
 
-async def run(messages: dict[str, Any]):
-    client = LLMClient()
-    async for event in client.chat_completion(messages, True):
-        print(event)
+        async for event in self.agent.run(message):
+            if event.type == AgentEventType.TEXT_DELTA:
+                content = event.data.get("content", "")
 
 
 @click.command()
@@ -23,10 +28,10 @@ async def run(messages: dict[str, Any]):
 def main(
     prompt: str | None,
 ):
-    print(prompt)
-    messages = [{"role": "user", "content": prompt}]
-    asyncio.run(run(messages))
-    print("done")
+    cli = CLI()
+    #    messages = [{"role": "user", "content": prompt}]
+    if prompt:
+        asyncio.run(cli.run_single(prompt))
 
 
 main()
